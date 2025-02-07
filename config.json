@@ -1,0 +1,38 @@
+{
+    "quotation": {
+        "input_path": "C:\\Users\\khaih\\OneDrive\\Desktop\\DATA\\02_Learning\\01_Programming\\Python\\Quotation\\quotation_report\\sample\\inputs",
+        "input_sheet": "2025",
+        "area1": {
+            "process": true,
+            "suffix": "1"
+        },
+        "area2": {
+            "process": true,
+            "suffix": "2"
+        }
+    },
+    "report": {
+        "output_path": "C:\\Users\\khaih\\OneDrive\\Desktop\\DATA\\02_Learning\\01_Programming\\Python\\Quotation\\quotation_report\\sample\\outputs",
+        "area1": {
+            "report_file": "QUOTATION FEB 25_AREA_1 FIRST HALF.XLSX",
+            "20feet": {
+                "report_sheet": "운임견적(20피트)",
+                "bestprices_sheet": "AREA 1 - 20FT"            },
+            "40feet": {
+                "report_sheet": "운임견적(40피트)",
+                "bestprices_sheet": "AREA 1 - 40HC"
+            }
+        },
+        "area2": {
+            "report_file": "QUOTATION FEB 25_AREA_2 FIRST HALF.XLSX",
+            "20feet": {
+                "report_sheet": "운임견적(20피트)",
+                "bestprices_sheet": "AREA 2 - 20FT"
+            },
+            "40feet": {
+                "report_sheet": "운임견적(40피트)",
+                "bestprices_sheet": "AREA 2 - 40HC"
+            }
+        }
+    }
+}

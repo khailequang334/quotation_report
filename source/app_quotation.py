@@ -11,23 +11,22 @@ import math
 
 # Function calculate total cost for all PORT and SHIPPING LINE
 # args: No desc
-# return: 2x (0-PORT, 1-SHIPPING, 2-TOTALCOST)
+# return: 2x (0-PORT, 1-TOTALCOST)
 def get_quotation_data(file, sheet, skip) :
     # Load the Excel file into a pandas dataframe
     df = pd.read_excel(file, sheet_name=sheet, skiprows=skip)
     # Get data
-    data20ft = df.iloc[:, [0,1,2,4,6,7,8,9,10,11]]
-    data40ft = df.iloc[:, [0,1,3,5,6,7,8,9,10,12]]
+    data20ft = df.iloc[:, [0,2,4,6,7,8,9,10,11]]
+    data40ft = df.iloc[:, [0,3,5,6,7,8,9,10,12]]
     return data20ft, data40ft
 
 
 # Function calculate total cost for all PORT and SHIPPING LINE
-# data: 0-PORT, 1-SHIPPING, [2:9]-COST[...]
-# return: 0-PORT, 1-SHIPPING, 2-TOTALCOST
+# data: 0-PORT, [1:8]-COST[...]
+# return: 0-PORT, 1-TOTALCOST
 def total_cost(data) :
     port = data.iloc[:,0].str.upper()
-    shipping = data.iloc[:,1].str.upper()
-    cost = data.iloc[:,2:10]
+    cost = data.iloc[:,1:9]
     # Convert cost to numberic data
     for i in range(len(cost.columns)):
         cost.isetitem(i, pd.to_numeric(cost.iloc[:,i], errors='coerce'))
@@ -37,20 +36,20 @@ def total_cost(data) :
     # Calculate total cost
     total_cost = cost.sum(axis=1, numeric_only=True)
     # Return the list
-    return pd.DataFrame().assign(PORT = port, SHIPPING = shipping, TOTALCOST = total_cost)
+    return pd.DataFrame().assign(PORT = port, TOTALCOST = total_cost)
 
 
-# Function return lowest cost provided by SHIPPING LINE for each PORT
-# data: 0-PORT, 1-SHIPPING, 2-TOTALCOST
-# return: 0-PORT, 1-SHIPPING, 2-TOTALCOST (only one min data for one port)
-def min_shipping_line_cost(data) :
-    #drop all NaN TOTALCOST value, not select these value, may lead to wrong result
-    data.dropna(subset=[data.columns[2]], inplace=True)
-    return data.loc[data.groupby(data.columns[0])[data.columns[2]].idxmin()]
+# Function return average total cost for each PORT
+# data: 0-PORT, 1-TOTALCOST
+# return: 0-PORT, 1-TOTALCOST
+def average_port_cost(data) :
+    data.dropna(subset=[data.columns[1]], inplace=True)
+    avg_data = data.groupby(data.columns[0])[data.columns[1]].mean().reset_index()
+    return avg_data
 
 
 # Function return data to fill for forwarder
-# min_cost: 0-PORT, 1-SHIPPING, 2-TOTALCOST (only one min data for one port)
+# min_cost: 0-PORT, 1-TOTALCOST (only one min data for one port)
 # return: idx, data(0-POD, 1-COST, 2-SHIPPING)
 def prepare_forwarder_data(fwd_name, min_cost, file, sheet, skip) :
     # Load the Excel file into a pandas dataframe
@@ -63,15 +62,13 @@ def prepare_forwarder_data(fwd_name, min_cost, file, sheet, skip) :
     # Make return frame
     fwd_data = pd.DataFrame().assign(POD = pod, COST = dft, SHIPPING = dft)
     # Create a dictionary to map PORT keys to TOTALCOST and SHIPPING values
-    shipping = dict(zip(min_cost[min_cost.columns[0]], min_cost[min_cost.columns[1]]))
-    cost = dict(zip(min_cost[min_cost.columns[0]], min_cost[min_cost.columns[2]]))
+    cost = dict(zip(min_cost[min_cost.columns[0]], min_cost[min_cost.columns[1]]))
     # Use map function to fill columns
     fwd_data[fwd_data.columns[1]] = fwd_data[fwd_data.columns[0]].map(cost)
-    fwd_data[fwd_data.columns[2]] = fwd_data[fwd_data.columns[0]].map(shipping)
     return fwd_index, fwd_data
 
 # Function update data of forwarder to sheet
-# fwd_data: 0-POD, 1-SHIPPING, 2-COST
+# fwd_data: 0-POD, 1-COST
 # return: No desc
 def write_forwarder_data(fwd_idx, fwd_data, file, sheet, skip) :
     # Load the existing Excel file
@@ -79,12 +76,11 @@ def write_forwarder_data(fwd_idx, fwd_data, file, sheet, skip) :
     worksheet = workbook[sheet]
 
     # Write the combined data to the worksheet, indexed #1
-    for row in range(1, len(fwd_data)+1):
+    for row in range(1, len(fwd_data) + 1):
         cost = fwd_data[fwd_data.columns[1]].iloc[row-1]
         ship = fwd_data[fwd_data.columns[2]].iloc[row-1]
         if not math.isnan(cost):
-            worksheet.cell(row=row+skip+1, column=fwd_idx+1).value = cost
-            worksheet.cell(row=row+skip+1, column=fwd_idx+2).value = ship
+            worksheet.cell(row = row + skip + 1, column = fwd_idx + 1).value = cost
             
     # Save the changes to the Excel file
     workbook.save(file)
@@ -192,11 +188,10 @@ def get_bestprices(data, top = 4):
         for i in range(1, len(data.columns), 2):
             fwd = data.columns[i]
             cost = data[data.columns[i]][idx]
-            ship = data[data.columns[i+1]][idx]
             if not math.isnan(cost):
-                vals.append((ship, fwd, cost))
+                vals.append((fwd, cost))
 
-        sorted_vals = sorted(vals, key=lambda x: x[2])
+        sorted_vals = sorted(vals, key=lambda x: x[1])
         sz = min(top, len(sorted_vals))
         result[pods[idx].upper()] = sorted_vals[:sz]
     return result
@@ -215,9 +210,8 @@ def write_bestprices_report(wdict, file, sheet, skip) :
     for row in range(1, len(df['DESTINATION'])+1):
         dest = worksheet.cell(row=row+skip+1, column=fwd_idx+1).value
         if dest in wdict and len(wdict[dest]) != 0:
-            worksheet.cell(row=row+skip+1, column=fwd_idx+2).value = wdict[dest][0][0]
-            worksheet.cell(row=row+skip+1, column=fwd_idx+3).value = wdict[dest][0][1]
-            worksheet.cell(row=row+skip+1, column=fwd_idx+4).value = wdict[dest][0][2]
+            worksheet.cell(row=row+skip+1, column=fwd_idx+3).value = wdict[dest][0][0]
+            worksheet.cell(row=row+skip+1, column=fwd_idx+4).value = wdict[dest][0][1]
             del wdict[dest][0]
     # Save the changes to the Excel file
     workbook.save(file)
@@ -264,9 +258,9 @@ def process_quotation(config, logging):
             print_progress_bar(processed/total)
             processed += 1
 
-            if area1 and (input.lower().endswith(area1_suffix + '.xls') or input.endswith(area1_suffix + '.xlsx')):
+            if area1 and (input.lower().endswith(area1_suffix + '.xls') or input.endswith(area1_suffix + '.xlsx') or input.endswith(area1_suffix + '.xlsb')):
                 output = area1_report_file
-            elif area2 and (input.lower().endswith(area2_suffix + '.xls') or input.endswith(area2_suffix + '.xlsx')):
+            elif area2 and (input.lower().endswith(area2_suffix + '.xls') or input.endswith(area2_suffix + '.xlsx') or input.endswith(area1_suffix + '.xlsb')):
                 output = area2_report_file
             else:
                 continue    
@@ -282,8 +276,8 @@ def process_quotation(config, logging):
             sum40 = total_cost(data40ft)
 
             # Sorting to get min cost information
-            min_sum20 = min_shipping_line_cost(sum20)
-            min_sum40 = min_shipping_line_cost(sum40)
+            min_sum20 = average_port_cost(sum20)
+            min_sum40 = average_port_cost(sum40)
 
             # Prepare data to fill for forwarder
             fwd_idx_20, fwd_data_20 = prepare_forwarder_data(name, min_sum20, output, area1_20feet_report_sheet, 3)
@@ -346,9 +340,11 @@ if __name__ == "__main__":
         print("\r\nQuotation has been processed successfully, continue to select best price list!")
     else:
         print("\r\nQuotation has been processed fail, please check error in log file!")
+        sys.exit()
 
     if best_prices(config, logging):
         print("\r\nBest price list has been processed successfully, please check report!")
     else:
         print("\r\nBest price list has been processed fail, please check error in log file!")
+        sys.exit()
 
