@@ -1,0 +1,29 @@
+quotation:
+  input_path: sample/inputs
+  input_sheet: '2025'
+  area1:
+    process: true
+    suffix: '1'
+  area2:
+    process: true
+    suffix: '2'
+
+report:
+  output_path: sample/outputs
+  template_path: templates
+  area1:
+    template_file: TEMPLATE_AREA_1.XLSX
+    20feet:
+      report_sheet: 운임견적(20피트)
+      bestprices_sheet: AREA 1 - 20FT
+    40feet:
+      report_sheet: 운임견적(40피트)
+      bestprices_sheet: AREA 1 - 40HC
+  area2:
+    template_file: TEMPLATE_AREA_2.XLSX
+    20feet:
+      report_sheet: 운임견적(20피트)
+      bestprices_sheet: AREA 2 - 20FT
+    40feet:
+      report_sheet: 운임견적(40피트)
+      bestprices_sheet: AREA 2 - 40HC 
