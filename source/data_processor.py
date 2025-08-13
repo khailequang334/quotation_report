@@ -36,8 +36,22 @@ class DataProcessor:
 
     def _calculate_average_port_cost(self, data: pd.DataFrame) -> pd.DataFrame:
         data.dropna(subset=[data.columns[1]], inplace=True)
-        avg_data = data.groupby(data.columns[0])[data.columns[1]].mean().reset_index()
-        return avg_data
+        result_data = []
+        
+        for port in data[data.columns[0]].unique():
+            port_data = data[data[data.columns[0]] == port]
+            if len(port_data) >= 3:
+                min_3_values = port_data.nsmallest(3, data.columns[1])
+                avg_cost = min_3_values[data.columns[1]].mean()
+            else:
+                avg_cost = port_data[data.columns[1]].mean()
+            
+            result_data.append({
+                data.columns[0]: port,
+                data.columns[1]: round(avg_cost, 2)
+            })
+        
+        return pd.DataFrame(result_data)
 
     def _prepare_forwarder_data(self, min_cost: pd.DataFrame, output_file: str, 
                               sheet: str, skip: int) -> pd.DataFrame:
